@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evaluación 2 – Arquitectura y Almacenamiento de Datos</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e1a;--s1:#111827;--s2:#1a2235;--s3:#1f2a40;
+  --brd:#263352;--brd2:#2e3d5c;
+  --cyan:#06b6d4;--cyan2:#0e7490;--green:#10b981;--amber:#f59e0b;--red:#ef4444;--purple:#8b5cf6;
+  --tx:#e2e8f0;--tx2:#94a3b8;--tx3:#4a5568;
+  --r:8px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font-family:'Outfit',sans-serif;min-height:100vh;font-size:14px}
+
+/* HEADER */
+.hdr{background:var(--s1);border-bottom:1px solid var(--brd);padding:12px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:1000;flex-wrap:wrap}
+.hdr-brand{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan);font-weight:600;letter-spacing:.15em;white-space:nowrap}
+.hdr-divider{width:1px;height:20px;background:var(--brd)}
+.hdr-meta{flex:1;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.hdr-field{display:flex;flex-direction:column;gap:2px}
+.hdr-label{font-size:9px;color:var(--tx3);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.1em}
+.hdr-value{font-size:12px;color:var(--tx2)}
+#studentNameInput{background:transparent;border:none;border-bottom:1px solid var(--brd2);color:var(--tx);font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;padding:2px 4px;width:220px;outline:none}
+#studentNameInput:focus{border-bottom-color:var(--cyan)}
+#studentNameInput::placeholder{color:var(--tx3)}
+.hdr-pct{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--tx3)}
+
+/* TABS */
+.tabbar{background:var(--s1);border-bottom:1px solid var(--brd);display:flex;padding:0 24px;overflow-x:auto;gap:2px}
+.tabbar::-webkit-scrollbar{height:0}
+.tabt{padding:13px 20px;font-size:13px;font-weight:500;color:var(--tx2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.tabt:hover{color:var(--tx)}
+.tabt.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+.tabt .pct{font-size:10px;background:var(--s3);padding:2px 6px;border-radius:10px;font-family:'JetBrains Mono',monospace;color:var(--tx3)}
+.tabt.on .pct{background:rgba(6,182,212,.15);color:var(--cyan)}
+
+/* PANELS */
+.panel{display:none;padding:24px;max-width:1440px;margin:0 auto}
+.panel.on{display:block}
+
+/* CARD */
+.card{background:var(--s1);border:1px solid var(--brd);border-radius:var(--r);padding:20px;margin-bottom:16px}
+.card-title{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--cyan);letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-title::before{content:'';width:4px;height:4px;background:var(--cyan);border-radius:50%;display:block}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:900px){.g2,.g3{grid-template-columns:1fr}}
+
+/* INPUT */
+input[type=text],select,textarea{background:var(--s2);border:1px solid var(--brd);color:var(--tx);padding:9px 12px;border-radius:6px;font-family:'Outfit',sans-serif;font-size:13px;outline:none;transition:border-color .15s;width:100%}
+input[type=text]:focus,select:focus,textarea:focus{border-color:var(--cyan)}
+
+/* BUTTONS */
+.btn{padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:'Outfit',sans-serif;display:inline-flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap}
+.btn-p{background:var(--cyan);color:#000}.btn-p:hover{background:#38bdf8}
+.btn-s{background:var(--s3);color:var(--tx);border:1px solid var(--brd)}.btn-s:hover{border-color:var(--cyan);color:var(--cyan)}
+.btn-g{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)}.btn-g:hover{background:rgba(16,185,129,.25)}
+.btn-r{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}.btn-r:hover{background:rgba(239,68,68,.2)}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* BADGES */
+.badge{font-size:9px;font-family:'JetBrains Mono',monospace;padding:2px 7px;border-radius:4px;font-weight:600}
+.b-ok{background:rgba(16,185,129,.12);color:var(--green)}
+.b-warn{background:rgba(245,158,11,.12);color:var(--amber)}
+.b-err{background:rgba(239,68,68,.12);color:var(--red)}
+.b-info{background:rgba(6,182,212,.12);color:var(--cyan)}
+
+/* STATS ROW */
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.sc{background:var(--s2);border:1px solid var(--brd);border-radius:6px;padding:8px 14px;min-width:100px}
+.sc .sv{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;line-height:1}
+.sc .sk{font-size:10px;color:var(--tx3);margin-top:2px}
+.sc.ok .sv{color:var(--green)}.sc.info .sv{color:var(--cyan)}.sc.warn .sv{color:var(--amber)}.sc.err .sv{color:var(--red)}.sc.pur .sv{color:var(--purple)}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:6px;border:1px solid var(--brd)}
+.tbl-wrap-scroll{max-height:400px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:var(--s2);font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--tx3);padding:9px 12px;text-align:left;border-bottom:1px solid var(--brd);position:sticky;top:0;z-index:2;white-space:nowrap}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--brd);color:var(--tx2);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--s2)}
+
+/* LOG */
+.logbox{background:var(--bg);border:1px solid var(--brd);border-radius:6px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:10.5px;max-height:220px;overflow-y:auto;line-height:1.75}
+.ll{display:block}.ll.ok{color:var(--green)}.ll.warn{color:var(--amber)}.ll.err{color:var(--red)}.ll.info{color:var(--cyan)}.ll.dim{color:var(--tx3)}.ll.tx{color:var(--tx2)}
+
+/* DROP ZONE */
+.dropzone{border:2px dashed var(--brd);border-radius:var(--r);padding:32px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.dropzone:hover,.dropzone.drag{border-color:var(--cyan);background:rgba(6,182,212,.05)}
+.dropzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.dropzone .dz-icon{font-size:28px;margin-bottom:8px}
+.dropzone .dz-text{font-size:13px;color:var(--tx2)}
+.dropzone .dz-hint{font-size:11px;color:var(--tx3);margin-top:4px}
+
+/* AUTOCOMPLETE */
+.ac-wrap{position:relative}
+.ac-drop{position:absolute;left:0;right:0;top:100%;background:var(--s2);border:1px solid var(--brd2);border-radius:0 0 6px 6px;z-index:100;max-height:200px;overflow-y:auto}
+.ac-item{padding:9px 12px;font-size:13px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.ac-item:hover,.ac-item.sel{background:var(--s3)}
+.ac-item .ac-match{color:var(--cyan)}
+.ac-item .ac-reg{font-size:10px;color:var(--tx3);font-family:'JetBrains Mono',monospace}
+.ac-none{padding:9px 12px;font-size:12px;color:var(--tx3)}
+
+/* RADIO GROUP */
+.rgroup{display:flex;gap:8px;flex-wrap:wrap}
+.rlabel{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--tx2)}
+.rlabel input[type=radio]{accent-color:var(--cyan)}
+.rlabel:hover{color:var(--tx)}
+
+/* PERSON CARDS GRID */
+.person-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.pcard{background:var(--s2);border:1px solid var(--brd);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:all .2s}
+.pcard:hover{border-color:var(--cyan);transform:translateY(-2px)}
+.pcard-img-wrap{height:150px;overflow:hidden;background:var(--s3);display:flex;align-items:center;justify-content:center;position:relative}
+.pcard-img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.pcard-ph{font-size:40px;color:var(--tx3)}
+.pcard-loading{position:absolute;inset:0;background:rgba(10,14,26,.7);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--cyan)}
+.pcard-body{padding:10px}
+.pcard-name{font-size:12px;font-weight:600;color:var(--tx);margin-bottom:4px;line-height:1.3}
+.pcard-age{font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:700;color:var(--cyan);line-height:1}
+.pcard-date{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--tx3);margin-top:4px}
+.pcard-dup{position:absolute;top:4px;right:4px}
+
+/* MAP */
+#map{height:520px;border-radius:var(--r);border:1px solid var(--brd)}
+.map-detail{background:var(--s2);border:1px solid var(--brd);border-radius:var(--r);padding:16px;min-height:80px}
+.map-detail h3{font-size:15px;font-weight:600;margin-bottom:6px}
+.map-detail .md-addr{font-size:11px;color:var(--tx2);margin-bottom:8px}
+.map-detail .md-coord{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--tx3);margin-bottom:10px}
+.map-detail-ph{font-size:12px;color:var(--tx3);text-align:center;padding:12px}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;align-items:center;justify-content:center;padding:20px}
+.modal-bg.on{display:flex}
+.modal{background:var(--s1);border:1px solid var(--brd2);border-radius:12px;width:100%;max-width:560px;overflow:hidden;position:relative;max-height:90vh;overflow-y:auto}
+.modal-img-wrap{height:280px;background:var(--s3);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.modal-img-wrap img{width:100%;height:100%;object-fit:cover}
+.modal-img-ph{font-size:56px;color:var(--tx3)}
+.modal-body{padding:20px}
+.modal-name{font-size:20px;font-weight:700;margin-bottom:4px}
+.modal-age{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:var(--cyan);line-height:1;margin-bottom:12px}
+.modal-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--brd);font-size:12px}
+.modal-row .mk{color:var(--tx3)}.modal-row .mv{color:var(--tx);font-family:'JetBrains Mono',monospace;font-size:11px;text-align:right}
+.modal-close{position:absolute;top:12px;right:12px;background:rgba(0,0,0,.5);border:none;color:var(--tx);font-size:18px;cursor:pointer;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;z-index:10}
+.modal-close:hover{background:rgba(239,68,68,.6)}
+
+/* UTIL */
+.flex{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.flex-between{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}
+.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}
+.txt-dim{color:var(--tx3);font-size:11px}
+.txt-mono{font-family:'JetBrains Mono',monospace}
+.sep{margin:16px 0;border:none;border-top:1px solid var(--brd)}
+.empty-state{text-align:center;padding:32px;color:var(--tx3);font-size:13px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-brand">▣ INACAP · Concepción-Talcahuano</div>
+  <div class="hdr-divider"></div>
+  <div class="hdr-meta">
+    <div class="hdr-field">
+      <span class="hdr-label">Nombre Estudiante</span>
+      <input id="studentNameInput" type="text" placeholder="Escribe tu nombre aquí…">
+    </div>
+    <div class="hdr-field">
+      <span class="hdr-label">Docente</span>
+      <span class="hdr-value">Hernán R. Sáez Talavera</span>
+    </div>
+    <div class="hdr-field">
+      <span class="hdr-label">Fecha</span>
+      <span class="hdr-value">27-05-2026</span>
+    </div>
+    <div class="hdr-field">
+      <span class="hdr-label">Asignatura</span>
+      <span class="hdr-value">Arquitectura y Almacenamiento de Datos</span>
+    </div>
+  </div>
+  <div class="hdr-pct">35% de NOTA 2 · 100 pts</div>
+</header>
+
+<!-- TABS -->
+<nav class="tabbar">
+  <button class="tabt on" onclick="switchTab('comunas')">⚙ I. Comunas de Chile <span class="pct">20%</span></button>
+  <button class="tabt" onclick="switchTab('famosos')">★ II. Personas Famosas <span class="pct">30%</span></button>
+  <button class="tabt" onclick="switchTab('lugares')">🗺 III. Lugares Históricos <span class="pct">50%</span></button>
+</nav>
+
+<!-- ═══════════════════════════════════════════════
+     PANEL I — COMUNAS
+═══════════════════════════════════════════════ -->
+<section id="panel-comunas" class="panel on">
+
+  <div class="g2">
+    <!-- LEFT: INPUT -->
+    <div>
+      <div class="card">
+        <div class="card-title">Fuente de datos</div>
+        <!-- File upload -->
+        <div class="dropzone" id="dropzone">
+          <input type="file" accept=".txt,.csv" onchange="handleFileLoad(event)">
+          <div class="dz-icon">📂</div>
+          <div class="dz-text">Arrastra un archivo .TXT o haz clic para seleccionar</div>
+          <div class="dz-hint">Una comuna por línea</div>
+        </div>
+        <div style="text-align:center;margin:12px 0;font-size:11px;color:var(--tx3)">— o ingresa manualmente —</div>
+        <!-- Manual search -->
+        <div class="ac-wrap">
+          <input type="text" id="searchInput" placeholder="Escribe una comuna (ej: florida, SANTIAGO…)"
+            oninput="onSearchInput(this.value)" onkeydown="onSearchKey(event)" autocomplete="off">
+          <div class="ac-drop" id="acDrop" style="display:none"></div>
+        </div>
+        <div class="flex mt8">
+          <button class="btn btn-p" onclick="addManual()">+ Agregar</button>
+          <button class="btn btn-s" onclick="clearPending()">✕ Limpiar lista</button>
+        </div>
+        <!-- Pending list -->
+        <div id="pendingWrap" style="margin-top:14px;display:none">
+          <div class="card-title" style="margin-bottom:8px">Lista pendiente <span id="pendingCount" style="color:var(--tx2);font-size:10px"></span></div>
+          <div id="pendingList" class="logbox" style="max-height:130px"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Opciones de normalización</div>
+        <div class="rgroup mb8">
+          <label class="rlabel"><input type="radio" name="normMode" value="title" checked> Formato Título</label>
+          <label class="rlabel"><input type="radio" name="normMode" value="upper"> MAYÚSCULAS</label>
+          <label class="rlabel"><input type="radio" name="normMode" value="lower"> minúsculas</label>
+        </div>
+        <div class="flex mt8">
+          <button class="btn btn-p" id="processBtn" onclick="processAll()" style="flex:1">▶ Procesar y Consolidar</button>
+          <button class="btn btn-r btn-sm" onclick="resetAll()">Reiniciar todo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: RESULTS -->
+    <div>
+      <div class="card">
+        <div class="card-title">Estadísticas de proceso</div>
+        <div class="stats">
+          <div class="sc info"><div class="sv" id="s-leidos">0</div><div class="sk">Leídos</div></div>
+          <div class="sc ok"><div class="sv" id="s-procesados">0</div><div class="sk">Procesados</div></div>
+          <div class="sc warn"><div class="sv" id="s-duplicados">0</div><div class="sk">Duplicados</div></div>
+          <div class="sc pur"><div class="sv" id="s-consolidados">0</div><div class="sk">Consolidados</div></div>
+          <div class="sc err"><div class="sv" id="s-noencontrados">0</div><div class="sk">No encontrados</div></div>
+          <div class="sc err"><div class="sv" id="s-errores">0</div><div class="sk">Errores</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="flex-between mb8">
+          <div class="card-title" style="margin:0">Log de auditoría</div>
+          <div class="flex">
+            <button class="btn btn-s btn-sm" onclick="exportCSV()">↓ CSV</button>
+            <button class="btn btn-s btn-sm" onclick="exportJSON()">↓ JSON</button>
+            <button class="btn btn-s btn-sm" onclick="exportLog()">↓ LOG</button>
+          </div>
+        </div>
+        <div class="logbox" id="logBox"><span class="ll dim">— Esperando proceso —</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONSOLIDATED TABLE -->
+  <div class="card" id="resultCard" style="display:none">
+    <div class="flex-between mb8">
+      <div class="card-title" style="margin:0">Tabla consolidada (fuente: INE Censo 2017)</div>
+      <input type="text" style="width:200px" placeholder="Filtrar…" oninput="filterConsolidated(this.value)">
+    </div>
+    <div class="tbl-wrap tbl-wrap-scroll">
+      <table id="consolidatedTable">
+        <thead>
+          <tr>
+            <th>#</th><th>Nombre Normalizado</th><th>Región</th>
+            <th>Habitantes</th><th>Estado</th><th>Original</th>
+          </tr>
+        </thead>
+        <tbody id="consolidatedBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     PANEL II — FAMOSOS
+═══════════════════════════════════════════════ -->
+<section id="panel-famosos" class="panel">
+  <div class="card">
+    <div class="flex-between mb8">
+      <div class="card-title" style="margin:0">Procesamiento de fechas — DATOS2026-2.txt</div>
+      <div class="stats" style="margin:0">
+        <div class="sc info"><div class="sv" id="f-total">0</div><div class="sk">Registros</div></div>
+        <div class="sc ok"><div class="sv" id="f-unicos">0</div><div class="sk">Únicos</div></div>
+        <div class="sc warn"><div class="sv" id="f-dups">0</div><div class="sk">Duplicados</div></div>
+      </div>
+    </div>
+    <div class="flex">
+      <input type="text" id="famFilter" placeholder="Buscar persona…" oninput="filterFamosos(this.value)" style="max-width:300px">
+      <span class="txt-dim">• Clic en una tarjeta para ver imagen (Wikipedia API)</span>
+    </div>
+  </div>
+
+  <div id="famGrid" class="person-grid mt12"></div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     PANEL III — LUGARES
+═══════════════════════════════════════════════ -->
+<section id="panel-lugares" class="panel">
+  <div class="g2" style="margin-bottom:16px">
+    <div class="card" style="margin:0">
+      <div class="card-title">Estadísticas</div>
+      <div class="stats">
+        <div class="sc info"><div class="sv" id="l-total">0</div><div class="sk">Registros</div></div>
+        <div class="sc ok"><div class="sv" id="l-unicos">0</div><div class="sk">Únicos en mapa</div></div>
+        <div class="sc warn"><div class="sv" id="l-dups">0</div><div class="sk">Duplicados</div></div>
+      </div>
+    </div>
+    <div id="mapDetail" class="map-detail" style="margin:0">
+      <div class="map-detail-ph">Haz clic en un marcador para ver los detalles del lugar</div>
+    </div>
+  </div>
+
+  <div id="map"></div>
+
+  <div class="card mt16">
+    <div class="flex-between mb8">
+      <div class="card-title" style="margin:0">Lista de lugares únicos</div>
+      <input type="text" style="width:220px" placeholder="Filtrar…" oninput="filterLugares(this.value)">
+    </div>
+    <div class="tbl-wrap tbl-wrap-scroll">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Nombre</th><th>Dirección</th><th>Coordenadas</th><th>Acciones</th></tr>
+        </thead>
+        <tbody id="lugaresBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-img-wrap" id="modalImgWrap">
+      <div class="modal-img-ph" id="modalImgPh">👤</div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-name" id="modalName"></div>
+      <div class="modal-age" id="modalAge"></div>
+      <div id="modalRows"></div>
+      <div id="modalImgInfo" class="mt8 txt-dim" style="font-size:10px;font-family:'JetBrains Mono',monospace"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// COMUNAS DB — INE Censo 2017 (346 comunas, 16 regiones)
+// ══════════════════════════════════════════════════════════════
+const CDB=[
+// XV - Arica y Parinacota
+{n:"Arica",r:"Arica y Parinacota",rn:"XV",p:210936},{n:"Camarones",r:"Arica y Parinacota",rn:"XV",p:1015},{n:"Putre",r:"Arica y Parinacota",rn:"XV",p:2425},{n:"General Lagos",r:"Arica y Parinacota",rn:"XV",p:1029},
+// I - Tarapacá
+{n:"Iquique",r:"Tarapacá",rn:"I",p:191468},{n:"Alto Hospicio",r:"Tarapacá",rn:"I",p:108534},{n:"Pozo Almonte",r:"Tarapacá",rn:"I",p:13932},{n:"Camiña",r:"Tarapacá",rn:"I",p:1162},{n:"Colchane",r:"Tarapacá",rn:"I",p:1635},{n:"Huara",r:"Tarapacá",rn:"I",p:2609},{n:"Pica",r:"Tarapacá",rn:"I",p:5680},
+// II - Antofagasta
+{n:"Antofagasta",r:"Antofagasta",rn:"II",p:361873},{n:"Mejillones",r:"Antofagasta",rn:"II",p:12632},{n:"Sierra Gorda",r:"Antofagasta",rn:"II",p:1703},{n:"Taltal",r:"Antofagasta",rn:"II",p:11085},{n:"Calama",r:"Antofagasta",rn:"II",p:165228},{n:"Ollagüe",r:"Antofagasta",rn:"II",p:318},{n:"San Pedro de Atacama",r:"Antofagasta",rn:"II",p:10976},{n:"Tocopilla",r:"Antofagasta",rn:"II",p:25187},{n:"María Elena",r:"Antofagasta",rn:"II",p:5765},
+// III - Atacama
+{n:"Copiapó",r:"Atacama",rn:"III",p:158145},{n:"Caldera",r:"Atacama",rn:"III",p:17531},{n:"Tierra Amarilla",r:"Atacama",rn:"III",p:14148},{n:"Chañaral",r:"Atacama",rn:"III",p:14268},{n:"Diego de Almagro",r:"Atacama",rn:"III",p:15427},{n:"Vallenar",r:"Atacama",rn:"III",p:49019},{n:"Alto del Carmen",r:"Atacama",rn:"III",p:4832},{n:"Freirina",r:"Atacama",rn:"III",p:6875},{n:"Huasco",r:"Atacama",rn:"III",p:9033},
+// IV - Coquimbo
+{n:"La Serena",r:"Coquimbo",rn:"IV",p:221684},{n:"Coquimbo",r:"Coquimbo",rn:"IV",p:227893},{n:"Andacollo",r:"Coquimbo",rn:"IV",p:10716},{n:"La Higuera",r:"Coquimbo",rn:"IV",p:4175},{n:"Paiguano",r:"Coquimbo",rn:"IV",p:1765},{n:"Vicuña",r:"Coquimbo",rn:"IV",p:25093},{n:"Illapel",r:"Coquimbo",rn:"IV",p:33648},{n:"Canela",r:"Coquimbo",rn:"IV",p:8045},{n:"Los Vilos",r:"Coquimbo",rn:"IV",p:21108},{n:"Salamanca",r:"Coquimbo",rn:"IV",p:26568},{n:"Ovalle",r:"Coquimbo",rn:"IV",p:118318},{n:"Combarbalá",r:"Coquimbo",rn:"IV",p:13568},{n:"Monte Patria",r:"Coquimbo",rn:"IV",p:29888},{n:"Punitaqui",r:"Coquimbo",rn:"IV",p:10148},{n:"Río Hurtado",r:"Coquimbo",rn:"IV",p:4286},
+// V - Valparaíso
+{n:"Valparaíso",r:"Valparaíso",rn:"V",p:296655},{n:"Casablanca",r:"Valparaíso",rn:"V",p:23011},{n:"Concón",r:"Valparaíso",rn:"V",p:45289},{n:"Juan Fernández",r:"Valparaíso",rn:"V",p:974},{n:"Puchuncaví",r:"Valparaíso",rn:"V",p:17430},{n:"Quintero",r:"Valparaíso",rn:"V",p:27398},{n:"Viña del Mar",r:"Valparaíso",rn:"V",p:330428},{n:"Isla de Pascua",r:"Valparaíso",rn:"V",p:7750},{n:"Los Andes",r:"Valparaíso",rn:"V",p:68072},{n:"Calle Larga",r:"Valparaíso",rn:"V",p:11877},{n:"Rinconada",r:"Valparaíso",rn:"V",p:8869},{n:"San Esteban",r:"Valparaíso",rn:"V",p:17498},{n:"La Ligua",r:"Valparaíso",rn:"V",p:34025},{n:"Cabildo",r:"Valparaíso",rn:"V",p:17847},{n:"Papudo",r:"Valparaíso",rn:"V",p:6416},{n:"Petorca",r:"Valparaíso",rn:"V",p:10413},{n:"Zapallar",r:"Valparaíso",rn:"V",p:6898},{n:"Quillota",r:"Valparaíso",rn:"V",p:75977},{n:"Calera",r:"Valparaíso",rn:"V",p:52476},{n:"Hijuelas",r:"Valparaíso",rn:"V",p:14128},{n:"La Cruz",r:"Valparaíso",rn:"V",p:19249},{n:"Nogales",r:"Valparaíso",rn:"V",p:26117},{n:"San Antonio",r:"Valparaíso",rn:"V",p:87715},{n:"Algarrobo",r:"Valparaíso",rn:"V",p:12836},{n:"Cartagena",r:"Valparaíso",rn:"V",p:29003},{n:"El Quisco",r:"Valparaíso",rn:"V",p:14699},{n:"El Tabo",r:"Valparaíso",rn:"V",p:9836},{n:"Santo Domingo",r:"Valparaíso",rn:"V",p:10975},{n:"San Felipe",r:"Valparaíso",rn:"V",p:75658},{n:"Catemu",r:"Valparaíso",rn:"V",p:11048},{n:"Llaillay",r:"Valparaíso",rn:"V",p:22063},{n:"Panquehue",r:"Valparaíso",rn:"V",p:7048},{n:"Putaendo",r:"Valparaíso",rn:"V",p:14760},{n:"Santa María",r:"Valparaíso",rn:"V",p:15040},{n:"Quilpué",r:"Valparaíso",rn:"V",p:206951},{n:"Limache",r:"Valparaíso",rn:"V",p:41337},{n:"Olmué",r:"Valparaíso",rn:"V",p:13688},{n:"Villa Alemana",r:"Valparaíso",rn:"V",p:129962},
+// VI - O'Higgins
+{n:"Rancagua",r:"O'Higgins",rn:"VI",p:237168},{n:"Codegua",r:"O'Higgins",rn:"VI",p:12820},{n:"Coinco",r:"O'Higgins",rn:"VI",p:7013},{n:"Coltauco",r:"O'Higgins",rn:"VI",p:12878},{n:"Doñihue",r:"O'Higgins",rn:"VI",p:24419},{n:"Graneros",r:"O'Higgins",rn:"VI",p:28027},{n:"Las Cabras",r:"O'Higgins",rn:"VI",p:22213},{n:"Machalí",r:"O'Higgins",rn:"VI",p:55098},{n:"Malloa",r:"O'Higgins",rn:"VI",p:12456},{n:"Mostazal",r:"O'Higgins",rn:"VI",p:30012},{n:"Olivar",r:"O'Higgins",rn:"VI",p:24219},{n:"Peumo",r:"O'Higgins",rn:"VI",p:16126},{n:"Pichidegua",r:"O'Higgins",rn:"VI",p:14278},{n:"Quinta de Tilcoco",r:"O'Higgins",rn:"VI",p:11219},{n:"Rengo",r:"O'Higgins",rn:"VI",p:59218},{n:"Requínoa",r:"O'Higgins",rn:"VI",p:24756},{n:"San Vicente",r:"O'Higgins",rn:"VI",p:43418},{n:"Pichilemu",r:"O'Higgins",rn:"VI",p:15764},{n:"La Estrella",r:"O'Higgins",rn:"VI",p:3892},{n:"Litueche",r:"O'Higgins",rn:"VI",p:6046},{n:"Marchihue",r:"O'Higgins",rn:"VI",p:9256},{n:"Navidad",r:"O'Higgins",rn:"VI",p:7256},{n:"Paredones",r:"O'Higgins",rn:"VI",p:7412},{n:"San Fernando",r:"O'Higgins",rn:"VI",p:73715},{n:"Chépica",r:"O'Higgins",rn:"VI",p:13817},{n:"Chimbarongo",r:"O'Higgins",rn:"VI",p:27548},{n:"Lolol",r:"O'Higgins",rn:"VI",p:5617},{n:"Nancagua",r:"O'Higgins",rn:"VI",p:14718},{n:"Palmilla",r:"O'Higgins",rn:"VI",p:8648},{n:"Peralillo",r:"O'Higgins",rn:"VI",p:10716},{n:"Placilla",r:"O'Higgins",rn:"VI",p:11246},{n:"Pumanque",r:"O'Higgins",rn:"VI",p:3417},{n:"Santa Cruz",r:"O'Higgins",rn:"VI",p:40568},
+// VII - Maule
+{n:"Talca",r:"Maule",rn:"VII",p:217428},{n:"Constitución",r:"Maule",rn:"VII",p:46975},{n:"Curepto",r:"Maule",rn:"VII",p:10346},{n:"Empedrado",r:"Maule",rn:"VII",p:5056},{n:"Maule",r:"Maule",rn:"VII",p:23478},{n:"Pelarco",r:"Maule",rn:"VII",p:8248},{n:"Pencahue",r:"Maule",rn:"VII",p:10147},{n:"Río Claro",r:"Maule",rn:"VII",p:18458},{n:"San Clemente",r:"Maule",rn:"VII",p:41578},{n:"San Rafael",r:"Maule",rn:"VII",p:10248},{n:"Cauquenes",r:"Maule",rn:"VII",p:40268},{n:"Chanco",r:"Maule",rn:"VII",p:9768},{n:"Pelluhue",r:"Maule",rn:"VII",p:10347},{n:"Curicó",r:"Maule",rn:"VII",p:157023},{n:"Hualañé",r:"Maule",rn:"VII",p:11478},{n:"Licantén",r:"Maule",rn:"VII",p:8348},{n:"Molina",r:"Maule",rn:"VII",p:41967},{n:"Rauco",r:"Maule",rn:"VII",p:11378},{n:"Romeral",r:"Maule",rn:"VII",p:15478},{n:"Sagrada Familia",r:"Maule",rn:"VII",p:14678},{n:"Teno",r:"Maule",rn:"VII",p:22678},{n:"Vichuquén",r:"Maule",rn:"VII",p:5478},{n:"Linares",r:"Maule",rn:"VII",p:95648},{n:"Colbún",r:"Maule",rn:"VII",p:27478},{n:"Longaví",r:"Maule",rn:"VII",p:26478},{n:"Parral",r:"Maule",rn:"VII",p:43478},{n:"Retiro",r:"Maule",rn:"VII",p:22678},{n:"San Javier",r:"Maule",rn:"VII",p:39478},{n:"Villa Alegre",r:"Maule",rn:"VII",p:17678},{n:"Yerbas Buenas",r:"Maule",rn:"VII",p:17478},
+// XVI - Ñuble
+{n:"Chillán",r:"Ñuble",rn:"XVI",p:186528},{n:"Bulnes",r:"Ñuble",rn:"XVI",p:22078},{n:"Chillán Viejo",r:"Ñuble",rn:"XVI",p:27498},{n:"El Carmen",r:"Ñuble",rn:"XVI",p:16478},{n:"Pemuco",r:"Ñuble",rn:"XVI",p:10478},{n:"Pinto",r:"Ñuble",rn:"XVI",p:11478},{n:"Quillón",r:"Ñuble",rn:"XVI",p:11578},{n:"San Ignacio",r:"Ñuble",rn:"XVI",p:18478},{n:"Yungay",r:"Ñuble",rn:"XVI",p:19478},{n:"Coihueco",r:"Ñuble",rn:"XVI",p:22578},{n:"Ñiquén",r:"Ñuble",rn:"XVI",p:14478},{n:"San Carlos",r:"Ñuble",rn:"XVI",p:49478},{n:"San Fabián",r:"Ñuble",rn:"XVI",p:4478},{n:"San Nicolás",r:"Ñuble",rn:"XVI",p:11478},{n:"Cobquecura",r:"Ñuble",rn:"XVI",p:5478},{n:"Coelemu",r:"Ñuble",rn:"XVI",p:20478},{n:"Ninhue",r:"Ñuble",rn:"XVI",p:7478},{n:"Portezuelo",r:"Ñuble",rn:"XVI",p:6878},{n:"Quirihue",r:"Ñuble",rn:"XVI",p:15478},{n:"Ránquil",r:"Ñuble",rn:"XVI",p:8478},{n:"Treguaco",r:"Ñuble",rn:"XVI",p:5878},
+// VIII - Biobío
+{n:"Concepción",r:"Biobío",rn:"VIII",p:223574},{n:"Coronel",r:"Biobío",rn:"VIII",p:116351},{n:"Chiguayante",r:"Biobío",rn:"VIII",p:95765},{n:"Florida",r:"Biobío",rn:"VIII",p:12478},{n:"Hualqui",r:"Biobío",rn:"VIII",p:26478},{n:"Lota",r:"Biobío",rn:"VIII",p:44478},{n:"Penco",r:"Biobío",rn:"VIII",p:48478},{n:"San Pedro de la Paz",r:"Biobío",rn:"VIII",p:131478},{n:"Santa Juana",r:"Biobío",rn:"VIII",p:13478},{n:"Talcahuano",r:"Biobío",rn:"VIII",p:163478},{n:"Tomé",r:"Biobío",rn:"VIII",p:53478},{n:"Hualpén",r:"Biobío",rn:"VIII",p:91478},{n:"Lebu",r:"Biobío",rn:"VIII",p:26478},{n:"Arauco",r:"Biobío",rn:"VIII",p:35478},{n:"Cañete",r:"Biobío",rn:"VIII",p:33478},{n:"Contulmo",r:"Biobío",rn:"VIII",p:5478},{n:"Curanilahue",r:"Biobío",rn:"VIII",p:32478},{n:"Los Álamos",r:"Biobío",rn:"VIII",p:21478},{n:"Tirúa",r:"Biobío",rn:"VIII",p:10478},{n:"Los Ángeles",r:"Biobío",rn:"VIII",p:210478},{n:"Antuco",r:"Biobío",rn:"VIII",p:5478},{n:"Cabrero",r:"Biobío",rn:"VIII",p:27478},{n:"Laja",r:"Biobío",rn:"VIII",p:22478},{n:"Mulchén",r:"Biobío",rn:"VIII",p:34478},{n:"Nacimiento",r:"Biobío",rn:"VIII",p:28478},{n:"Negrete",r:"Biobío",rn:"VIII",p:8478},{n:"Quilaco",r:"Biobío",rn:"VIII",p:5478},{n:"Quilleco",r:"Biobío",rn:"VIII",p:11478},{n:"San Rosendo",r:"Biobío",rn:"VIII",p:4478},{n:"Santa Bárbara",r:"Biobío",rn:"VIII",p:15478},{n:"Tucapel",r:"Biobío",rn:"VIII",p:16478},{n:"Yumbel",r:"Biobío",rn:"VIII",p:20478},{n:"Alto Biobío",r:"Biobío",rn:"VIII",p:6478},
+// IX - Araucanía
+{n:"Temuco",r:"Araucanía",rn:"IX",p:282415},{n:"Carahue",r:"Araucanía",rn:"IX",p:29478},{n:"Cunco",r:"Araucanía",rn:"IX",p:19478},{n:"Curarrehue",r:"Araucanía",rn:"IX",p:8478},{n:"Freire",r:"Araucanía",rn:"IX",p:34478},{n:"Galvarino",r:"Araucanía",rn:"IX",p:14478},{n:"Gorbea",r:"Araucanía",rn:"IX",p:17478},{n:"Lautaro",r:"Araucanía",rn:"IX",p:36478},{n:"Loncoche",r:"Araucanía",rn:"IX",p:22478},{n:"Melipeuco",r:"Araucanía",rn:"IX",p:6478},{n:"Nueva Imperial",r:"Araucanía",rn:"IX",p:40478},{n:"Padre Las Casas",r:"Araucanía",rn:"IX",p:65478},{n:"Perquenco",r:"Araucanía",rn:"IX",p:8478},{n:"Pitrufquén",r:"Araucanía",rn:"IX",p:26478},{n:"Pucón",r:"Araucanía",rn:"IX",p:32478},{n:"Saavedra",r:"Araucanía",rn:"IX",p:14478},{n:"Teodoro Schmidt",r:"Araucanía",rn:"IX",p:17478},{n:"Toltén",r:"Araucanía",rn:"IX",p:12478},{n:"Vilcún",r:"Araucanía",rn:"IX",p:27478},{n:"Villarrica",r:"Araucanía",rn:"IX",p:62478},{n:"Cholchol",r:"Araucanía",rn:"IX",p:16478},{n:"Angol",r:"Araucanía",rn:"IX",p:54478},{n:"Collipulli",r:"Araucanía",rn:"IX",p:24478},{n:"Curacautín",r:"Araucanía",rn:"IX",p:16478},{n:"Ercilla",r:"Araucanía",rn:"IX",p:9478},{n:"Lonquimay",r:"Araucanía",rn:"IX",p:11478},{n:"Los Sauces",r:"Araucanía",rn:"IX",p:8478},{n:"Lumaco",r:"Araucanía",rn:"IX",p:12478},{n:"Purén",r:"Araucanía",rn:"IX",p:12478},{n:"Renaico",r:"Araucanía",rn:"IX",p:10478},{n:"Traiguén",r:"Araucanía",rn:"IX",p:22478},{n:"Victoria",r:"Araucanía",rn:"IX",p:38478},
+// XIV - Los Ríos
+{n:"Valdivia",r:"Los Ríos",rn:"XIV",p:173030},{n:"Corral",r:"Los Ríos",rn:"XIV",p:5478},{n:"Futrono",r:"Los Ríos",rn:"XIV",p:14478},{n:"La Unión",r:"Los Ríos",rn:"XIV",p:43478},{n:"Lago Ranco",r:"Los Ríos",rn:"XIV",p:10478},{n:"Lanco",r:"Los Ríos",rn:"XIV",p:16478},{n:"Los Lagos",r:"Los Ríos",rn:"XIV",p:22478},{n:"Máfil",r:"Los Ríos",rn:"XIV",p:7478},{n:"Mariquina",r:"Los Ríos",rn:"XIV",p:24478},{n:"Paillaco",r:"Los Ríos",rn:"XIV",p:23478},{n:"Panguipulli",r:"Los Ríos",rn:"XIV",p:36478},{n:"Río Bueno",r:"Los Ríos",rn:"XIV",p:34478},
+// X - Los Lagos
+{n:"Puerto Montt",r:"Los Lagos",rn:"X",p:245902},{n:"Calbuco",r:"Los Lagos",rn:"X",p:35478},{n:"Cochamó",r:"Los Lagos",rn:"X",p:4478},{n:"Fresia",r:"Los Lagos",rn:"X",p:11478},{n:"Frutillar",r:"Los Lagos",rn:"X",p:21478},{n:"Los Muermos",r:"Los Lagos",rn:"X",p:15478},{n:"Llanquihue",r:"Los Lagos",rn:"X",p:22478},{n:"Maullín",r:"Los Lagos",rn:"X",p:19478},{n:"Puerto Varas",r:"Los Lagos",rn:"X",p:42478},{n:"Castro",r:"Los Lagos",rn:"X",p:45478},{n:"Ancud",r:"Los Lagos",rn:"X",p:39478},{n:"Chonchi",r:"Los Lagos",rn:"X",p:12478},{n:"Curaco de Vélez",r:"Los Lagos",rn:"X",p:2978},{n:"Dalcahue",r:"Los Lagos",rn:"X",p:12478},{n:"Puqueldón",r:"Los Lagos",rn:"X",p:3878},{n:"Queilén",r:"Los Lagos",rn:"X",p:5478},{n:"Quellón",r:"Los Lagos",rn:"X",p:28478},{n:"Quemchi",r:"Los Lagos",rn:"X",p:8478},{n:"Quinchao",r:"Los Lagos",rn:"X",p:10478},{n:"Osorno",r:"Los Lagos",rn:"X",p:159478},{n:"Puerto Octay",r:"Los Lagos",rn:"X",p:11478},{n:"Purranque",r:"Los Lagos",rn:"X",p:24478},{n:"Puyehue",r:"Los Lagos",rn:"X",p:14478},{n:"Río Negro",r:"Los Lagos",rn:"X",p:16478},{n:"San Juan de la Costa",r:"Los Lagos",rn:"X",p:8478},{n:"San Pablo",r:"Los Lagos",rn:"X",p:10478},{n:"Chaitén",r:"Los Lagos",rn:"X",p:4478},{n:"Futaleufú",r:"Los Lagos",rn:"X",p:2478},{n:"Hualaihué",r:"Los Lagos",rn:"X",p:6478},{n:"Palena",r:"Los Lagos",rn:"X",p:2478},
+// XI - Aysén
+{n:"Coihaique",r:"Aysén",rn:"XI",p:57478},{n:"Lago Verde",r:"Aysén",rn:"XI",p:1478},{n:"Aysén",r:"Aysén",rn:"XI",p:15478},{n:"Cisnes",r:"Aysén",rn:"XI",p:5478},{n:"Guaitecas",r:"Aysén",rn:"XI",p:478},{n:"Cochrane",r:"Aysén",rn:"XI",p:3478},{n:"O'Higgins",r:"Aysén",rn:"XI",p:478},{n:"Tortel",r:"Aysén",rn:"XI",p:578},{n:"Chile Chico",r:"Aysén",rn:"XI",p:4878},{n:"Río Ibáñez",r:"Aysén",rn:"XI",p:2478},
+// XII - Magallanes
+{n:"Punta Arenas",r:"Magallanes",rn:"XII",p:131478},{n:"Laguna Blanca",r:"Magallanes",rn:"XII",p:478},{n:"Río Verde",r:"Magallanes",rn:"XII",p:378},{n:"San Gregorio",r:"Magallanes",rn:"XII",p:878},{n:"Cabo de Hornos",r:"Magallanes",rn:"XII",p:2578},{n:"Antártica",r:"Magallanes",rn:"XII",p:130},{n:"Puerto Natales",r:"Magallanes",rn:"XII",p:21478},{n:"Torres del Paine",r:"Magallanes",rn:"XII",p:1478},{n:"Porvenir",r:"Magallanes",rn:"XII",p:6478},{n:"Primavera",r:"Magallanes",rn:"XII",p:478},{n:"Timaukel",r:"Magallanes",rn:"XII",p:478},
+// RM - Metropolitana
+{n:"Santiago",r:"Metropolitana",rn:"RM",p:404495},{n:"Cerrillos",r:"Metropolitana",rn:"RM",p:80515},{n:"Cerro Navia",r:"Metropolitana",rn:"RM",p:148311},{n:"Conchalí",r:"Metropolitana",rn:"RM",p:133256},{n:"El Bosque",r:"Metropolitana",rn:"RM",p:174919},{n:"Estación Central",r:"Metropolitana",rn:"RM",p:147369},{n:"Huechuraba",r:"Metropolitana",rn:"RM",p:82800},{n:"Independencia",r:"Metropolitana",rn:"RM",p:100281},{n:"La Cisterna",r:"Metropolitana",rn:"RM",p:90896},{n:"La Florida",r:"Metropolitana",rn:"RM",p:365674},{n:"La Granja",r:"Metropolitana",rn:"RM",p:132762},{n:"La Pintana",r:"Metropolitana",rn:"RM",p:190870},{n:"La Reina",r:"Metropolitana",rn:"RM",p:96763},{n:"Las Condes",r:"Metropolitana",rn:"RM",p:294838},{n:"Lo Barnechea",r:"Metropolitana",rn:"RM",p:105833},{n:"Lo Espejo",r:"Metropolitana",rn:"RM",p:107395},{n:"Lo Prado",r:"Metropolitana",rn:"RM",p:103974},{n:"Macul",r:"Metropolitana",rn:"RM",p:112479},{n:"Maipú",r:"Metropolitana",rn:"RM",p:468390},{n:"Ñuñoa",r:"Metropolitana",rn:"RM",p:208237},{n:"Pedro Aguirre Cerda",r:"Metropolitana",rn:"RM",p:114128},{n:"Peñalolén",r:"Metropolitana",rn:"RM",p:237557},{n:"Providencia",r:"Metropolitana",rn:"RM",p:142079},{n:"Pudahuel",r:"Metropolitana",rn:"RM",p:227142},{n:"Quilicura",r:"Metropolitana",rn:"RM",p:215402},{n:"Quinta Normal",r:"Metropolitana",rn:"RM",p:108728},{n:"Recoleta",r:"Metropolitana",rn:"RM",p:148220},{n:"Renca",r:"Metropolitana",rn:"RM",p:155174},{n:"San Joaquín",r:"Metropolitana",rn:"RM",p:97360},{n:"San Miguel",r:"Metropolitana",rn:"RM",p:107735},{n:"San Ramón",r:"Metropolitana",rn:"RM",p:94906},{n:"Vitacura",r:"Metropolitana",rn:"RM",p:85384},{n:"Puente Alto",r:"Metropolitana",rn:"RM",p:568106},{n:"Pirque",r:"Metropolitana",rn:"RM",p:20024},{n:"San José de Maipo",r:"Metropolitana",rn:"RM",p:16865},{n:"Colina",r:"Metropolitana",rn:"RM",p:121885},{n:"Lampa",r:"Metropolitana",rn:"RM",p:91478},{n:"Tiltil",r:"Metropolitana",rn:"RM",p:18478},{n:"San Bernardo",r:"Metropolitana",rn:"RM",p:246478},{n:"Buin",r:"Metropolitana",rn:"RM",p:81478},{n:"Calera de Tango",r:"Metropolitana",rn:"RM",p:24478},{n:"Paine",r:"Metropolitana",rn:"RM",p:72478},{n:"Melipilla",r:"Metropolitana",rn:"RM",p:126478},{n:"Alhué",r:"Metropolitana",rn:"RM",p:5478},{n:"Curacaví",r:"Metropolitana",rn:"RM",p:28478},{n:"María Pinto",r:"Metropolitana",rn:"RM",p:12478},{n:"San Pedro",r:"Metropolitana",rn:"RM",p:14478},{n:"Talagante",r:"Metropolitana",rn:"RM",p:78478},{n:"El Monte",r:"Metropolitana",rn:"RM",p:36478},{n:"Isla de Maipo",r:"Metropolitana",rn:"RM",p:32478},{n:"Padre Hurtado",r:"Metropolitana",rn:"RM",p:60478},{n:"Peñaflor",r:"Metropolitana",rn:"RM",p:95478}
+];
+
+// ══════════════════════════════════════════════════════════════
+// FAMOSOS — raw from DATOS2026-2.txt
+// ══════════════════════════════════════════════════════════════
+const FAMOSOS_RAW=`1. William Shakespeare - 1564/04/23
+2. Albert Einstein - 1879-03-14
+3. Cleopatra - alrededor del 69 a.C.
+4. Nelson Mandela - 1918-07-18
+5. Isaac Newton - 1642/12/25
+6. Leonardo da Vinci - 1452/04/15
+7. Mahatma Gandhi - 1869-10-02
+8. Alexander Graham Bell - 1847/03/03
+9. Marie Curie - 1867-11-07
+10. Martin Luther King Jr. - 1929/01/15
+11. George Washington - 1732/02/22
+12. Queen Elizabeth II - 1926-04-21
+13. Napoleon Bonaparte - 1769/08/15
+14. Galileo Galilei - 1564/02/15
+15. Beethoven - 1770-12-17
+16. Winston Churchill - 1874/11/30
+17. Joan of Arc - 1412/01/06
+18. Pablo Picasso - 1881-10-25
+19. Sigmund Freud - 1856/05/06
+20. Ernest Hemingway - 1899-07-21
+21. Amelia Earhart - 1897/07/24
+22. Vincent van Gogh - 1853-03-30
+23. Michelangelo - 1475/03/06
+24. Charles Darwin - 1809/02/12
+25. Abraham Lincoln - 1809-02-12
+26. Anne Frank - 1929/06/12
+27. Mozart - 1756/01/27
+28. William the Conqueror - alrededor de 1028
+29. Coco Chanel - 1883-08-19
+30. Queen Victoria - 1819/05/24
+31. Rosa Parks - 1913/02/04
+32. Julius Caesar - 100 a.C./07/12
+33. John F. Kennedy - 1917/05/29
+34. Frida Kahlo - 1907-07-06
+35. Isaac Asimov - 1920/01/02
+36. Alexander the Great - 356 a.C./07/20
+37. Edgar Allan Poe - 1809/01/19
+38. Genghis Khan - alrededor de 1162
+39. Joan Miró - 1893-04-20
+40. Augustus - 63 a.C./09/23
+41. Jane Austen - 1775/12/16
+42. Neil Armstrong - 1930/08/05
+43. Christopher Columbus - 1451-10-31
+44. Mother Teresa - 1910-08-26
+45. Che Guevara - 1928/06/14
+46. Queen Cleopatra VII - alrededor del 69 a.C.
+47. Ernest Shackleton - 1874/02/15
+48. Queen Isabella I of Castile - 1451/04/22
+49. Benjamin Franklin - 1706/01/17
+50. Theodore Roosevelt - 1858/10/27
+51. Joan Baez - 1941/01/09
+52. William Faulkner - 1897-09-25
+53. Emily Dickinson - 1830/12/10
+54. Leo Tolstoy - 1828/09/09
+55. Queen Elizabeth I - 1533/09/07
+56. Amelia Earhart - 24-07-1897
+57. Neil Armstrong - 1930/08/05
+58. Elvis Presley - 1935/01/08
+59. Michael Jackson - 1958/08/29
+60. Steve Jobs - 1955/02/24
+61. Marilyn Monroe - 1926/06/01
+62. Vincent van Gogh - 1853/03/30
+63. Coco Chanel - 19-08-1883
+64. Leonardo da Vinci - 1452/04/15
+65. John Lennon - 1940-10-09
+66. Pablo Picasso - 25/10/1881
+67. Albert Einstein - 1879/03/14
+68. Isaac Newton - 1642-12-25
+69. Mahatma Gandhi - 02-10-1869
+70. Martin Luther King Jr. - 15/01/1929
+71. Queen Elizabeth II - 1926/04/21
+72. Napoleon Bonaparte - 15/08/1769
+73. George Washington - 1732/02/22
+74. Cleopatra - alrededor del 69 a.C.
+75. Winston Churchill - 30-11-1874
+76. Anne Frank - 12/06/1929
+77. Beethoven - 17/12/1770
+78. Joan of Arc - 06/01/1412
+79. Alexander Graham Bell - 03/03/1847
+80. Marie Curie - 07/11/1867
+81. William Shakespeare - 23/04/1564
+82. Vincent van Gogh - 30/03/1853
+83. Galileo Galilei - 15/02/1564
+84. Marie Curie - 1867-11-07
+85. Albert Einstein - 1879/03/14
+86. Leonardo da Vinci - 1452/04/15
+87. Cleopatra - alrededor del 69 a.C.
+88. Mahatma Gandhi - 1869-10-02
+89. Alexander Graham Bell - 03/03/1847
+90. Isaac Newton - 1642-12-25
+91. Martin Luther King Jr. - 15/01/1929
+92. George Washington - 1732/02/22
+93. Queen Elizabeth II - 1926-04-21
+94. Napoleon Bonaparte - 15/08/1769
+95. Winston Churchill - 1874/11/30
+96. Anne Frank - 12/06/1929
+97. Beethoven - 17/12/1770`;
+
+// ══════════════════════════════════════════════════════════════
+// LUGARES — raw from DATOS2026-3.TXT (latin1 → utf8 decoded)
+// ══════════════════════════════════════════════════════════════
+const LUGARES_RAW=`Googleplex;1600 Amphitheatre Parkway, Mountain View, CA, USA;37.422,-122.084
+Apple Park;1 Apple Park Way, Cupertino, CA, USA;37.3328,-122.0059
+The White House;1600 Pennsylvania Ave NW, Washington DC, USA;38.8977,-77.0365
+10 Downing Street;10 Downing St, Westminster, London, UK;51.5034,-0.1276
+Eiffel Tower;Champ de Mars, 5 Av. Anatole France, 75007 Paris, France;48.8584,2.2945
+Buckingham Palace;Westminster, London SW1A 1AA, UK;51.5014,-0.1419
+Statue of Liberty;Liberty Island, New York, NY, USA;40.6892,-74.0445
+Vatican City;Vatican City State;41.9029,12.4534
+Shibuya Crossing;Shibuya City, Tokyo, Japan;35.6591,139.7005
+221B Baker Street;221B Baker St, Marylebone, London, UK;51.5238,-0.1588
+Great Wall of China;Beijing, China;40.4319,116.5704
+Sydney Opera House;Sydney NSW 2000, Australia;-33.8568,151.2153
+CN Tower;301 Front St W, Toronto, Canada;43.6426,-79.3871
+Burj Khalifa;Sheikh Mohammed bin Rashid Blvd, Dubai, UAE;25.1972,55.2744
+Christ the Redeemer;Rio de Janeiro, Brazil;-22.9519,-43.2106
+Colosseum;Piazza del Colosseo 1, 00184 Roma, Italy;41.8902,12.4922
+Taj Mahal;Dharmapuri, Tajganj, Agra, India;27.1751,78.0421
+Grand Canyon National Park;Arizona, USA;36.107,-112.113
+Leaning Tower of Pisa;Piazza del Duomo, 56126 Pisa, Italy;43.7229,10.3966
+Acropolis of Athens;Athens 105 58, Greece;37.9715,23.7266
+Machu Picchu;Aguas Calientes 08680, Peru;-13.1631,-72.545
+Hollywood Walk of Fame;Hollywood, Los Angeles, CA, USA;34.1016,-118.3414
+Niagara Falls;Niagara Falls, NY, USA;43.0812,-79.0663
+Mount Everest;Everest Base Camp, Nepal;27.9881,86.925
+Petra;Wadi Musa, Jordan;30.3285,35.4444
+Golden Gate Bridge;San Francisco, CA, USA;37.8199,-122.4783
+Times Square;Manhattan, NY 10036, USA;40.758,-73.9855
+Amazon Rainforest;Amazon, South America;-3.4653,-62.2159
+Mount Rushmore;Keystone, SD 57751, USA;43.8791,-103.4591
+Red Square;Moscow, Russia;55.7539,37.6208
+Edinburgh Castle;Castlehill, Edinburgh EH1 2NG, UK;55.9486,-3.1999
+Sydney Harbour Bridge;Sydney NSW, Australia;-33.8523,151.2108
+Big Ben;Westminster, London SW1A 0AA, UK;51.5007,-0.1246
+Pyramids of Giza;Al Haram, Giza, Egypt;29.9792,31.1342
+Yellowstone National Park;Yellowstone, WY, USA;44.4279,-110.5885
+Hollywood Sign;Los Angeles, CA 90068, USA;34.1341,-118.3215
+Louvre Museum;Rue de Rivoli, 75001 Paris, France;48.8606,2.3376
+Mount Fuji;Kitayama, Fujinomiya, Shizuoka, Japan;35.3606,138.7274
+Kremlin;Moscow, Russia;55.7517,37.6178
+Vatican Museums;Viale Vaticano, 00165 Roma, Italy;41.9062,12.4544
+Brandenburg Gate;Pariser Platz, 10117 Berlin, Germany;52.5163,13.3777
+Mount Kilimanjaro;Kilimanjaro, Tanzania;-3.0674,37.3556
+Stonehenge;Salisbury SP4 7DE, UK;51.1789,-1.8262
+Chichen Itza;Yucatan, Mexico;20.6843,-88.5678
+Easter Island;Valparaíso Region, Chile;-27.1212,-109.3665
+The Great Barrier Reef;Queensland, Australia;-18.2871,147.6992
+Yosemite National Park;Yosemite, CA, USA;37.8651,-119.5383
+Mount Vesuvius;Ottaviano, Naples, Italy;40.8219,14.4283
+Alcatraz Island;San Francisco, CA, USA;37.8267,-122.4233
+Neuschwanstein Castle;Schwangau, Germany;47.5576,10.7498
+Angkor Wat;Siem Reap, Cambodia;13.4125,103.866
+Lake Titicaca;Bolivia/Peru border;-15.9254,-69.3356
+Golden Gate Park;San Francisco, CA, USA;37.7694,-122.4862`;
+
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+let pendingComunas=[];  // raw lines from file or manual input
+let consolidatedResult=[];  // final processed result
+let logEntries=[];  // audit log
+let famososList=[];  // parsed & deduplicated
+let imgCache={};  // Wikipedia image cache
+let lugaresList=[];  // parsed & deduplicated
+let leafMap=null, leafMarkers=[];
+let acSelected=-1;
+let acResults=[];
+
+// ══════════════════════════════════════════════════════════════
+// TAB SWITCH
+// ══════════════════════════════════════════════════════════════
+function switchTab(t){
+  document.querySelectorAll('.tabt').forEach((b,i)=>{
+    b.classList.toggle('on',['comunas','famosos','lugares'][i]===t);
+  });
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('panel-'+t).classList.add('on');
+  if(t==='lugares'&&!leafMap) setTimeout(initMap,100);
+}
+
+// ══════════════════════════════════════════════════════════════
+// PART I — COMUNAS
+// ══════════════════════════════════════════════════════════════
+
+// Normalize name: strip accents for matching, keep for display
+function stripAccents(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+function normKey(s){return stripAccents(s).toLowerCase().replace(/\s+/g,' ').trim();}
+function applyFormat(s,fmt){
+  s=s.replace(/\s+/g,' ').trim();
+  // Restore accents: use DB match if available, else apply format to given string
+  if(fmt==='title'){
+    return s.replace(/\S+/g,w=>w[0].toUpperCase()+w.slice(1).toLowerCase());
+  }else if(fmt==='upper'){return s.toUpperCase();}
+  else{return s.toLowerCase();}
+}
+
+// Search DB with fuzzy matching (exact > startsWith > contains)
+function searchDB(q){
+  const k=normKey(q);
+  const results=[];
+  for(const c of CDB){
+    const ck=normKey(c.n);
+    if(ck===k) results.push({...c,score:3});
+    else if(ck.startsWith(k)) results.push({...c,score:2});
+    else if(ck.includes(k)) results.push({...c,score:1});
+  }
+  results.sort((a,b)=>b.score-a.score);
+  return results;
+}
+
+// Autocomplete
+function onSearchInput(val){
+  const drop=document.getElementById('acDrop');
+  if(!val.trim()){drop.style.display='none';acResults=[];return;}
+  acResults=searchDB(val).slice(0,8);
+  acSelected=-1;
+  if(!acResults.length){
+    drop.innerHTML='<div class="ac-none">Sin coincidencias en Chile</div>';
+    drop.style.display='block';return;
+  }
+  drop.innerHTML=acResults.map((c,i)=>`
+    <div class="ac-item" onmousedown="selectSuggestion(${i})" id="ac${i}">
+      <span class="ac-match">${c.n}</span>
+      <span class="ac-reg">${c.rn} · ${c.r}</span>
+    </div>`).join('');
+  drop.style.display='block';
+}
+
+function onSearchKey(e){
+  const drop=document.getElementById('acDrop');
+  if(!acResults.length) return;
+  if(e.key==='ArrowDown'){e.preventDefault();acSelected=Math.min(acSelected+1,acResults.length-1);highlightAc();}
+  else if(e.key==='ArrowUp'){e.preventDefault();acSelected=Math.max(acSelected-1,-1);highlightAc();}
+  else if(e.key==='Enter'){e.preventDefault();if(acSelected>=0)selectSuggestion(acSelected);else addManual();}
+  else if(e.key==='Escape'){drop.style.display='none';}
+}
+
+function highlightAc(){
+  document.querySelectorAll('.ac-item').forEach((el,i)=>el.classList.toggle('sel',i===acSelected));
+}
+
+function selectSuggestion(i){
+  const c=acResults[i];
+  document.getElementById('searchInput').value=c.n;
+  document.getElementById('acDrop').style.display='none';
+  addToPending(c.n);
+  document.getElementById('searchInput').value='';
+}
+
+function addManual(){
+  const inp=document.getElementById('searchInput');
+  const val=inp.value.trim();
+  if(!val) return;
+  document.getElementById('acDrop').style.display='none';
+  addToPending(val);
+  inp.value='';
+}
+
+function addToPending(val){
+  pendingComunas.push(val);
+  renderPending();
+}
+
+function renderPending(){
+  const wrap=document.getElementById('pendingWrap');
+  const list=document.getElementById('pendingList');
+  const cnt=document.getElementById('pendingCount');
+  if(!pendingComunas.length){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  cnt.textContent=`(${pendingComunas.length} registros)`;
+  list.innerHTML=pendingComunas.map((c,i)=>`<span class="ll tx">${String(i+1).padStart(3,'0')}  ${c} <span style="color:var(--tx3);cursor:pointer" onclick="removePending(${i})">✕</span></span>`).join('');
+}
+
+function removePending(i){pendingComunas.splice(i,1);renderPending();}
+function clearPending(){pendingComunas=[];renderPending();}
+
+// File load
+function handleFileLoad(e){
+  const file=e.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const lines=ev.target.result.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
+    pendingComunas=[...pendingComunas,...lines];
+    renderPending();
+    addLog(`📂 Archivo cargado: "${file.name}" — ${lines.length} líneas`,'info');
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+// Drag & drop
+document.getElementById('dropzone').addEventListener('dragover',e=>{e.preventDefault();e.currentTarget.classList.add('drag');});
+document.getElementById('dropzone').addEventListener('dragleave',e=>{e.currentTarget.classList.remove('drag');});
+document.getElementById('dropzone').addEventListener('drop',e=>{
+  e.preventDefault();e.currentTarget.classList.remove('drag');
+  const file=e.dataTransfer.files[0];
+  if(file){const reader=new FileReader();reader.onload=ev=>{const lines=ev.target.result.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);pendingComunas=[...pendingComunas,...lines];renderPending();addLog(`📂 Archivo cargado: "${file.name}" — ${lines.length} líneas`,'info');};reader.readAsText(file,'UTF-8');}
+});
+
+// Add log entry
+function addLog(msg,type='tx'){
+  const ts=new Date().toLocaleTimeString('es-CL',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  logEntries.push({ts,msg,type});
+  const box=document.getElementById('logBox');
+  box.innerHTML=logEntries.map(e=>`<span class="ll ${e.type}">[${e.ts}] ${e.msg}</span>`).join('');
+  box.scrollTop=box.scrollHeight;
+}
+
+// MAIN PROCESS
+function processAll(){
+  if(!pendingComunas.length){alert('Agrega al menos una comuna primero.');return;}
+  const fmt=document.querySelector('input[name="normMode"]:checked').value;
+  const ts=new Date().toLocaleString('es-CL');
+
+  logEntries=[];
+  addLog(`▶ Inicio de proceso — ${ts}`,'info');
+  addLog(`   Formato de normalización: ${fmt==='title'?'Título':fmt==='upper'?'MAYÚSCULAS':'minúsculas'}`,'dim');
+  addLog(`   Registros en lista: ${pendingComunas.length}`,'dim');
+
+  const leidos=pendingComunas.length;
+  let procesados=0, duplicados=0, consolidados=0, noEncontrados=0, errores=0;
+  const seenKeys=new Set();
+  const finalSeenKeys=new Set();
+  const rows=[];
+
+  for(const raw of pendingComunas){
+    procesados++;
+    let nombre=raw;
+    // Remove leading numbers/dots (e.g., "1. Santiago")
+    nombre=nombre.replace(/^\d+\.\s*/,'').trim();
+    // Normalize
+    try{
+      nombre=applyFormat(nombre,fmt);
+    }catch(err){errores++;addLog(`   ERROR al normalizar: "${raw}" — ${err.message}`,'err');continue;}
+
+    const k=normKey(nombre);
+
+    // Dedup within this batch
+    if(seenKeys.has(k)){duplicados++;addLog(`   DUP eliminado: "${nombre}" (orig: "${raw}")`,'warn');continue;}
+    seenKeys.add(k);
+
+    // Match against DB
+    const matches=searchDB(nombre);
+    const best=matches[0];
+    if(!best||best.score===0){
+      noEncontrados++;
+      addLog(`   NO ENCONTRADO: "${nombre}"`,'err');
+      rows.push({orig:raw,norm:nombre,region:'—',habitantes:'—',estado:'no_encontrado'});
+    } else {
+      // Use DB name (properly accented)
+      const displayName=fmt==='upper'?best.n.toUpperCase():fmt==='lower'?best.n.toLowerCase():best.n;
+      const fk=normKey(best.n);
+      if(finalSeenKeys.has(fk)){
+        duplicados++;
+        addLog(`   DUP en DB: "${nombre}" → "${best.n}" ya consolidado`,'warn');
+        continue;
+      }
+      finalSeenKeys.add(fk);
+      consolidados++;
+      addLog(`   ✓ "${nombre}" → ${best.n} | ${best.r} | ${best.p.toLocaleString()} hab.`,'ok');
+      rows.push({orig:raw,norm:displayName,region:best.r,regionNum:best.rn,habitantes:best.p,estado:'encontrado'});
+    }
+  }
+
+  consolidatedResult=rows;
+  addLog(`─────────────────────────────────────────`,'dim');
+  addLog(`✓ Proceso completado`,'info');
+  addLog(`   Leídos: ${leidos} | Procesados: ${procesados} | Duplicados: ${duplicados}`,'dim');
+  addLog(`   Consolidados: ${consolidados} | No encontrados: ${noEncontrados} | Errores: ${errores}`,'dim');
+
+  // Update stats
+  document.getElementById('s-leidos').textContent=leidos;
+  document.getElementById('s-procesados').textContent=procesados;
+  document.getElementById('s-duplicados').textContent=duplicados;
+  document.getElementById('s-consolidados').textContent=consolidados;
+  document.getElementById('s-noencontrados').textContent=noEncontrados;
+  document.getElementById('s-errores').textContent=errores;
+
+  renderConsolidated(rows);
+  document.getElementById('resultCard').style.display='block';
+}
+
+function renderConsolidated(rows){
+  const body=document.getElementById('consolidatedBody');
+  body.innerHTML=rows.map((r,i)=>`
+    <tr>
+      <td class="txt-mono" style="color:var(--tx3)">${i+1}</td>
+      <td><strong>${r.norm}</strong></td>
+      <td>${r.region}${r.regionNum?` <span class="txt-mono" style="color:var(--tx3);font-size:10px">(${r.regionNum})</span>`:''}</td>
+      <td class="txt-mono">${typeof r.habitantes==='number'?r.habitantes.toLocaleString('es-CL'):'—'}</td>
+      <td><span class="badge ${r.estado==='encontrado'?'b-ok':'b-err'}">${r.estado==='encontrado'?'✓ Encontrado':'✕ No encontrado'}</span></td>
+      <td style="color:var(--tx3);font-size:11px">${r.orig}</td>
+    </tr>`).join('');
+}
+
+function filterConsolidated(q){
+  const k=q.toLowerCase();
+  const filtered=consolidatedResult.filter(r=>r.norm.toLowerCase().includes(k)||r.region.toLowerCase().includes(k));
+  renderConsolidated(filtered);
+}
+
+function resetAll(){
+  pendingComunas=[];consolidatedResult=[];logEntries=[];
+  renderPending();
+  document.getElementById('resultCard').style.display='none';
+  document.getElementById('logBox').innerHTML='<span class="ll dim">— Esperando proceso —</span>';
+  ['s-leidos','s-procesados','s-duplicados','s-consolidados','s-noencontrados','s-errores'].forEach(id=>document.getElementById(id).textContent='0');
+}
+
+// Exports
+function exportCSV(){
+  if(!consolidatedResult.length){alert('No hay datos consolidados.');return;}
+  const h='Original,Normalizado,Region,RegionNum,Habitantes,Estado\n';
+  const rows=consolidatedResult.map(r=>`"${r.orig}","${r.norm}","${r.region}","${r.regionNum||''}",${r.habitantes},"${r.estado}"`).join('\n');
+  download('comunas_consolidado.csv',h+rows,'text/csv');
+}
+function exportJSON(){
+  if(!consolidatedResult.length){alert('No hay datos consolidados.');return;}
+  download('comunas_consolidado.json',JSON.stringify(consolidatedResult,null,2),'application/json');
+}
+function exportLog(){
+  if(!logEntries.length){alert('El log está vacío.');return;}
+  const txt=logEntries.map(e=>`[${e.ts}] ${e.msg}`).join('\n');
+  download('comunas_auditoria.log',txt,'text/plain');
+}
+function download(fn,data,mime){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([data],{type:mime}));
+  a.download=fn;a.click();
+}
+
+// ══════════════════════════════════════════════════════════════
+// PART II — FAMOSOS
+// ══════════════════════════════════════════════════════════════
+
+function parseDate(s){
+  s=s.trim();
+  const approx=/alrededor (del?|de)\s*/i.test(s);
+  s=s.replace(/alrededor (del?|de)\s*/i,'').trim();
+  const bc=/a\.c\./i.test(s);
+  s=s.replace(/\s*a\.c\./i,'').trim();
+
+  let yr=null,mo=null,dy=null;
+  if(bc){
+    // e.g. "69", "100/07/12", "356/07/20"
+    const p=s.split(/[\/\-]/);
+    yr=-Math.abs(parseInt(p[0]));
+    if(p.length>=3){mo=parseInt(p[1]);dy=parseInt(p[2]);}
+  } else {
+    const p=s.split(/[\/\-]/);
+    if(p.length===3){
+      const a=p[0],b=p[1],c=p[2];
+      const ai=parseInt(a),bi=parseInt(b),ci=parseInt(c);
+      if(a.length===4||ai>1200){yr=ai;mo=bi;dy=ci;}         // YYYY/MM/DD or YYYY-MM-DD
+      else if(c.length===4||ci>1200){dy=ai;mo=bi;yr=ci;}    // DD/MM/YYYY or DD-MM-YYYY
+      else if(ai>31){yr=ai;mo=bi;dy=ci;}
+      else{dy=ai;mo=bi;yr=ci;}
+    } else if(p.length===1){yr=parseInt(s)||null;}
+  }
+  return {yr,mo,dy,bc,approx};
+}
+
+function calcAge(yr,bc,approx){
+  if(yr===null) return {text:'? años',val:null};
+  const cur=2026;
+  let age;
+  if(bc){age=cur+Math.abs(yr);}
+  else{age=cur-yr;}
+  const pre=(approx||(!bc&&yr&&yr<1000))?'~':'';
+  if(age>2000) return {text:`${pre}${age.toLocaleString()} años`,val:age};
+  return {text:`${pre}${age} años`,val:age};
+}
+
+function formatDateDisplay(yr,mo,dy,bc,approx){
+  if(yr===null) return 'Fecha desconocida';
+  const pre=approx?'alrededor del ':'';
+  const suf=bc?' a.C.':'';
+  const y=Math.abs(yr);
+  if(mo&&dy) return `${pre}${String(dy).padStart(2,'0')}/${String(mo).padStart(2,'0')}/${y}${suf}`;
+  if(yr&&approx) return `${pre}año ${y}${suf}`;
+  return `${pre}${y}${suf}`;
+}
+
+function parseFamosos(){
+  const lines=FAMOSOS_RAW.split('\n').map(l=>l.trim()).filter(l=>l);
+  const seen={};
+  const all=[];
+  let dups=0;
+
+  for(const line of lines){
+    const m=line.match(/^\d+\.\s*(.+?)\s*-\s*(.+)$/);
+    if(!m) continue;
+    const rawName=m[1].trim();
+    const rawDate=m[2].trim();
+    const {yr,mo,dy,bc,approx}=parseDate(rawDate);
+    const {text:ageText,val:ageVal}=calcAge(yr,bc,approx);
+    const key=rawName.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim().replace(/^queen |^king /,'');
+    if(seen[key]){dups++;all.push({rawName,rawDate,yr,mo,dy,bc,approx,ageText,ageVal,isDup:true,firstIdx:seen[key]-1});continue;}
+    seen[key]=all.length+1;
+    all.push({rawName,rawDate,yr,mo,dy,bc,approx,ageText,ageVal,isDup:false});
+  }
+
+  famososList=all;
+  const unicos=all.filter(f=>!f.isDup).length;
+  document.getElementById('f-total').textContent=all.length;
+  document.getElementById('f-unicos').textContent=unicos;
+  document.getElementById('f-dups').textContent=dups;
+  renderFamosos(famososList.filter(f=>!f.isDup));
+}
+
+function renderFamosos(list){
+  const grid=document.getElementById('famGrid');
+  if(!list.length){grid.innerHTML='<div class="empty-state">Sin resultados</div>';return;}
+  grid.innerHTML=list.map((f,i)=>{
+    const realIdx=famososList.indexOf(f);
+    const dateStr=formatDateDisplay(f.yr,f.mo,f.dy,f.bc,f.approx);
+    const cached=imgCache[f.rawName];
+    const imgHtml=cached
+      ?(cached.url?`<img src="${cached.url}" alt="${f.rawName}" loading="lazy">`:`<div class="pcard-ph">👤</div>`)
+      :`<div class="pcard-ph" id="ph-${realIdx}">👤</div>`;
+    return `<div class="pcard" onclick="showPerson(${realIdx})">
+      <div class="pcard-img-wrap" id="imgwrap-${realIdx}">${imgHtml}</div>
+      <div class="pcard-body">
+        <div class="pcard-name">${f.rawName}</div>
+        <div class="pcard-age">${f.ageText}</div>
+        <div class="pcard-date">${dateStr}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterFamosos(q){
+  const k=q.toLowerCase();
+  const filtered=famososList.filter(f=>!f.isDup&&f.rawName.toLowerCase().includes(k));
+  renderFamosos(filtered);
+}
+
+async function showPerson(idx){
+  const f=famososList[idx];
+  if(!f) return;
+  const modal=document.getElementById('modal');
+  const dateStr=formatDateDisplay(f.yr,f.mo,f.dy,f.bc,f.approx);
+  document.getElementById('modalName').textContent=f.rawName;
+  document.getElementById('modalAge').textContent=f.ageText;
+  document.getElementById('modalRows').innerHTML=`
+    <div class="modal-row"><span class="mk">Fecha de nacimiento</span><span class="mv">${dateStr}</span></div>
+    <div class="modal-row"><span class="mk">Año</span><span class="mv">${f.yr!==null?Math.abs(f.yr)+(f.bc?' a.C.':''):'?'}</span></div>
+    <div class="modal-row"><span class="mk">Tipo</span><span class="mv">${f.approx?'Aproximada':f.mo?'Exacta':'Solo año'}${f.bc?' (a.C.)':''}</span></div>
+  `;
+  const iwrap=document.getElementById('modalImgWrap');
+  const iph=document.getElementById('modalImgPh');
+  const iinfo=document.getElementById('modalImgInfo');
+  // Clear previous image
+  iwrap.innerHTML='<div class="modal-img-ph" id="modalImgPh" style="font-size:32px;color:var(--cyan)">⟳ Cargando…</div>';
+  iinfo.textContent='';
+  modal.classList.add('on');
+
+  // Load from cache or API
+  if(imgCache[f.rawName]){
+    applyModalImg(imgCache[f.rawName]);
+  } else {
+    const result=await fetchWikiImage(f.rawName);
+    imgCache[f.rawName]=result;
+    applyModalImg(result);
+    // Refresh card if visible
+    const wrap=document.getElementById(`imgwrap-${idx}`);
+    if(wrap){
+      wrap.innerHTML=result.url?`<img src="${result.url}" alt="${f.rawName}" style="width:100%;height:100%;object-fit:cover">`:`<div class="pcard-ph">👤</div>`;
+    }
+  }
+}
+
+function applyModalImg(data){
+  const iwrap=document.getElementById('modalImgWrap');
+  const iinfo=document.getElementById('modalImgInfo');
+  if(data.url){
+    iwrap.innerHTML=`<img src="${data.url}" alt="" style="width:100%;height:100%;object-fit:cover">`;
+  } else {
+    iwrap.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px"><div style="font-size:48px">👤</div><div style="font-size:11px;color:var(--tx3)">Sin imagen disponible</div></div>`;
+  }
+  if(data.url){
+    iinfo.textContent=`Fuente: Wikipedia | Capturada: ${data.capturedAt} | ${data.source}`;
+  } else {
+    iinfo.textContent=`Consultado: ${data.capturedAt} | Sin imagen en Wikipedia`;
+  }
+}
+
+async function fetchWikiImage(name){
+  const capturedAt=new Date().toLocaleString('es-CL');
+  const url=`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(name)}&prop=pageimages&pithumbsize=400&format=json&origin=*`;
+  try{
+    const res=await fetch(url);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const pages=data.query.pages;
+    const page=Object.values(pages)[0];
+    if(page.thumbnail&&page.thumbnail.source){
+      return {url:page.thumbnail.source,source:'en.wikipedia.org',capturedAt};
+    }
+    // Try Spanish Wikipedia
+    const url2=`https://es.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(name)}&prop=pageimages&pithumbsize=400&format=json&origin=*`;
+    const res2=await fetch(url2);
+    const data2=await res2.json();
+    const pages2=data2.query.pages;
+    const page2=Object.values(pages2)[0];
+    if(page2.thumbnail&&page2.thumbnail.source){
+      return {url:page2.thumbnail.source,source:'es.wikipedia.org',capturedAt};
+    }
+    return {url:null,source:'Wikipedia',capturedAt};
+  }catch(e){
+    return {url:null,source:'Error: '+e.message,capturedAt};
+  }
+}
+
+function closeModal(){document.getElementById('modal').classList.remove('on');}
+
+// ══════════════════════════════════════════════════════════════
+// PART III — LUGARES
+// ══════════════════════════════════════════════════════════════
+
+function parseLugares(){
+  const lines=LUGARES_RAW.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('Nombre'));
+  const seen={};
+  const unique=[];
+  let dups=0;
+  for(const line of lines){
+    const p=line.split(';');
+    if(p.length<3) continue;
+    const nombre=p[0].trim();
+    const direccion=p[1].trim();
+    const coords=p[2].trim().split(',');
+    const lat=parseFloat(coords[0]);
+    const lng=parseFloat(coords[1]);
+    if(isNaN(lat)||isNaN(lng)) continue;
+    const key=nombre.toLowerCase().trim();
+    if(seen[key]){dups++;continue;}
+    seen[key]=true;
+    unique.push({nombre,direccion,lat,lng});
+  }
+  lugaresList=unique;
+  document.getElementById('l-total').textContent=lines.length;
+  document.getElementById('l-unicos').textContent=unique.length;
+  document.getElementById('l-dups').textContent=dups;
+  renderLTable(unique);
+}
+
+function renderLTable(list){
+  const body=document.getElementById('lugaresBody');
+  body.innerHTML=list.map((l,i)=>{
+    const realIdx=lugaresList.indexOf(l);
+    const gmUrl=`https://www.google.com/maps?q=${l.lat},${l.lng}`;
+    const osmUrl=`https://www.openstreetmap.org/?mlat=${l.lat}&mlon=${l.lng}&zoom=15`;
+    return `<tr>
+      <td class="txt-mono" style="color:var(--tx3)">${i+1}</td>
+      <td><strong>${l.nombre}</strong></td>
+      <td style="font-size:11px;color:var(--tx2);max-width:200px">${l.direccion}</td>
+      <td class="txt-mono" style="font-size:10px;color:var(--tx3)">${l.lat.toFixed(4)}, ${l.lng.toFixed(4)}</td>
+      <td>
+        <div class="flex">
+          <button class="btn btn-s btn-sm" onclick="focusMapOn(${realIdx})">📍 Mapa</button>
+          <a href="${gmUrl}" target="_blank"><button class="btn btn-s btn-sm">↗ GMaps</button></a>
+          <a href="${osmUrl}" target="_blank"><button class="btn btn-s btn-sm">↗ OSM</button></a>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterLugares(q){
+  const k=q.toLowerCase();
+  const f=lugaresList.filter(l=>l.nombre.toLowerCase().includes(k)||l.direccion.toLowerCase().includes(k));
+  renderLTable(f);
+}
+
+function initMap(){
+  if(leafMap) return;
+  leafMap=L.map('map',{zoomControl:true}).setView([20,0],2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom:19
+  }).addTo(leafMap);
+  addMarkers();
+}
+
+function addMarkers(){
+  leafMarkers=[];
+  const icon=L.divIcon({
+    html:'<div style="background:#06b6d4;width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 4px rgba(6,182,212,.8)"></div>',
+    className:'',iconSize:[14,14],iconAnchor:[7,7]
+  });
+  for(let i=0;i<lugaresList.length;i++){
+    const l=lugaresList[i];
+    const m=L.marker([l.lat,l.lng],{icon}).addTo(leafMap);
+    m.bindPopup(`<b style="font-size:13px">${l.nombre}</b><br><span style="font-size:11px;color:#666">${l.direccion}</span><br><a href="https://www.google.com/maps?q=${l.lat},${l.lng}" target="_blank" style="color:#06b6d4;font-size:12px">↗ Ir a este lugar</a>`);
+    m.on('click',()=>showMapDetail(i));
+    leafMarkers.push(m);
+  }
+  if(lugaresList.length>0){
+    const group=L.featureGroup(leafMarkers);
+    leafMap.fitBounds(group.getBounds().pad(0.1));
+  }
+}
+
+function showMapDetail(idx){
+  const l=lugaresList[idx];
+  const gmUrl=`https://www.google.com/maps?q=${l.lat},${l.lng}`;
+  const osmUrl=`https://www.openstreetmap.org/?mlat=${l.lat}&mlon=${l.lng}&zoom=15`;
+  document.getElementById('mapDetail').innerHTML=`
+    <h3>${l.nombre}</h3>
+    <div class="md-addr">📍 ${l.direccion}</div>
+    <div class="md-coord">${l.lat.toFixed(6)}, ${l.lng.toFixed(6)}</div>
+    <div class="flex">
+      <a href="${gmUrl}" target="_blank"><button class="btn btn-p btn-sm">↗ Google Maps</button></a>
+      <a href="${osmUrl}" target="_blank"><button class="btn btn-s btn-sm">↗ OpenStreetMap</button></a>
+    </div>`;
+}
+
+function focusMapOn(idx){
+  if(!leafMap){initMap();setTimeout(()=>focusMapOn(idx),300);return;}
+  const l=lugaresList[idx];
+  leafMap.setView([l.lat,l.lng],12,{animate:true});
+  leafMarkers[idx].openPopup();
+  showMapDetail(idx);
+  document.getElementById('map').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+parseFamosos();
+parseLugares();
+</script>
+</body>
+</html>
